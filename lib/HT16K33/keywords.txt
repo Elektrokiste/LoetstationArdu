@@ -1,0 +1,68 @@
+#######################################
+# Syntax Coloring Map For MyHT16K33_7Seg
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+MyHT16K33_7Seg	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+isReady	KEYWORD2
+init	KEYWORD2
+setOperationMode	KEYWORD2
+setDisplayMode	KEYWORD2
+setBrightness	KEYWORD2
+sendBlank	KEYWORD2
+sendFloatVal	KEYWORD2
+sendFixedVal	KEYWORD2
+statusBlank	KEYWORD2
+sendDigit	KEYWORD2
+sendTime	KEYWORD2
+test7Seg	KEYWORD2
+sendChar	KEYWORD2
+sendDec	KEYWORD2
+sendString	KEYWORD2
+
+#######################################
+# Instances (KEYWORD2)
+#######################################
+
+
+#######################################
+# Constants (LITERAL1)
+
+HT16K33_DISPLAY_DATA_ADDRESS_POINTER	LITERAL1
+HT16K33_SYSTEM_SETUP	LITERAL1
+HT16K33_DISPLAY_SETUP	LITERAL1
+HT16K33_ROW_INT_SET	LITERAL1
+HT16K33_DIMMING_SET	LITERAL1
+
+HT16K33_DISPLAY_STANDBY	LITERAL1
+HT16K33_DISPLAY_NORMAL	LITERAL1
+
+HT16K33_DISPLAY_OFF	LITERAL1
+HT16K33_DISPLAY_ON	LITERAL1
+HT16K33_DISPLAY_BLINK_1	LITERAL1
+HT16K33_DISPLAY_BLINK_2	LITERAL1
+HT16K33_DISPLAY_BLINK_0p5	LITERAL1
+
+HT16K33_OUTPUT_PIN_ROW	LITERAL1
+HT16K33_OUTPUT_PIN_INT_ACTIV_LOW	LITERAL1
+HT16K33_OUTPUT_PIN_INT_ACTIV_HIGH	LITERAL1
+
+DISPLAY_COL_ON	LITERAL1
+DISPLAY_COL_OFF	LITERAL1
+DISPLAY_DEC_POINT_OFF	LITERAL1
+DISPLAY_DEC_POINT_DIG0	LITERAL1
+DISPLAY_DEC_POINT_DIG1	LITERAL1
+DISPLAY_DEC_POINT_DIG2	LITERAL1
+DISPLAY_DEC_POINT_DIG3	LITERAL1
+DISPLAY_DEC_POINT_ON	LITERAL1
+
+#######################################
+

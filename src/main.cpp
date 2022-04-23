@@ -3,9 +3,11 @@
 // Bibliothek für die PID Regelung
 #include <PID_v1.h>
 
+// Bibliothek um die 4x7Segment Anzeigen anzusteuern
+#include <MyHT16K33_7Seg.h>
 
-// Bibliotheken um die 4x7Segment Anzeigen anzusteuern
-#include "AG_HT16K33.h"
+// Bibliothek um die BarGraph Anzeige anzusteuern
+#include <MyHT16K33_BAR.h>
 
 // Bibliothek um den Encoder auszulesen
 #include <Encoder.h>

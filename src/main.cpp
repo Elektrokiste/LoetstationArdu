@@ -24,11 +24,12 @@
 */
 // Deklariere 3 Variablen, die die Schnittstelle zur PID-Berechnung stellen
 double Sollwert = 325;
-double aktuelleTemperatur = 20;
+double Istwert = 20;
 double Output = 0;
+double aktuelleTemperatur = 0;
 // Definiere die Reglerbeiwerte
 //double Kp=2, Ki=5, Kd=1;
-double Kp=0.001, Ki=0.1, Kd=0;
+double Kp=8, Ki=8, Kd=0;
 // Erstelle ein PID Okject mit den definierten Schnittstellenvariablen und den Reglerbeiwerten;
 // mit DIRECT wird der Regler auf nicht-invertiernd gestellt
 PID myPID(&aktuelleTemperatur, &Output, &Sollwert, Kp, Ki, Kd, DIRECT);
@@ -64,6 +65,17 @@ float Temperaturmittelwert = 0;
 void TimerInterruptFunktion() {
   digitalWrite(13,!LEDState);
   LEDState = !LEDState;
+  digitalWrite(5,LOW);
+  delay(5);
+  Istwert = map(analogRead(0),400,1000,100,450);
+  TemperaturBuffer[0] = map(analogRead(0),400,1000,100,400);
+  Temperaturmittelwert = 0;
+  for (int i = 0; i < Mittelwert;i++){
+    Temperaturmittelwert += TemperaturBuffer[i];
+    //Serial.print(TemperaturBuffer[i]); Serial.print(" ");
+  }
+  aktuelleTemperatur = Temperaturmittelwert / Mittelwert;
+
   myPID.Compute();
 
   if (analogRead(0) < 1000){
@@ -90,7 +102,7 @@ void setup() {
   // Initialisiere den TimerInterrupt, 10ms Wartezeit und der Funktion, die aufgerufen werden soll,
   // wenn der Timer auslöst
   ITimer1.init();
-  ITimer1.attachInterruptInterval(100, TimerInterruptFunktion);
+  ITimer1.attachInterruptInterval(10, TimerInterruptFunktion);
 
   // Initialisiere die Anzeigen und Zeige ein Testbild an
   BarGraphAnzeige.init();
@@ -113,14 +125,7 @@ void loop() {
   for (int i = Mittelwert - 1; i >= 1;i--){
     TemperaturBuffer[i] = TemperaturBuffer[i - 1];
   }
-  TemperaturBuffer[0] = map(analogRead(0),250,520,300,450);
-  Temperaturmittelwert = 0;
-  for (int i = 0; i < Mittelwert;i++){
-    Temperaturmittelwert += TemperaturBuffer[i];
-    //Serial.print(TemperaturBuffer[i]); Serial.print(" ");
-  }
-  aktuelleTemperatur = Temperaturmittelwert / Mittelwert;
-
+  
   Serial.print(aktuelleTemperatur); Serial.print("  ");
 
   // Verarbeite die Encoderposition 
@@ -146,7 +151,11 @@ void loop() {
     //SiebSegAnzeige.sendString(DisplayBuffer);
     if (millis() - lastTimeSiebSegChange > 100){
       lastTimeSiebSegChange = millis();
-      SiebSegAnzeige.sendFixedVal(int(aktuelleTemperatur * 10),1,0);
+      if (aktuelleTemperatur > 400){
+        SiebSegAnzeige.sendString(" -- ");
+      }else{
+        SiebSegAnzeige.sendFixedVal(int(aktuelleTemperatur * 10),1,0);
+      }
     }
     //SiebSegAnzeige.sendString("----");
   }

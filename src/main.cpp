@@ -40,7 +40,7 @@ PID myPID(&aktuelleTemperatur, &Output, &Sollwert, Kp, Ki, Kd, DIRECT);
 MyHT16K33_7Seg SiebSegAnzeige(0x70 | 0b000);  // Da keiner der Jumper A0 bis A2 gesetzt ist, muss die Adresse gleich der Basisadresse sein 
 MyHT16K33_Bar BarGraphAnzeige(0x70 | 0b001);  // Da nur A1 gesetzt ist, ist die I2C Adresse um 0b001 höher als die Basis adresse
 
-char DisplayBuffer[5];
+char DisplayBuffer[4]; // Ziwschenspeicher für die Anzeigedaten
 
 /*
   Erstelle ein Encoder Object
@@ -55,37 +55,47 @@ bool LEDState = 0;  // In dieser Variable wird der aktuelle Zustand der LED an P
 long lastEncoderChange = 0; // In dieser Variable wird der letzte millis()-Wert gespeichert, bei dem der Encoder gedreht wurde
 long lastTimeSiebSegChange = 0;
 
-#define Mittelwert 100
-float TemperaturBuffer[Mittelwert];
+#define Mittelwert 100  // Es werden die letzten n Messungen aufaddiert, und anschließend der Mittelwert ermittelt
+float TemperaturBuffer[Mittelwert]; // hier werden die letzen #Mittelwert Temperaturmessungen abgespeichert
 float Temperaturmittelwert = 0;
 
 /*
   Definiere eine Funktion, die vom Timerinterrupt ausgeführt werden soll
 */
+// Hier wird der Regler in einem Festgelegten Zeitintervall aufgerufen, damit die Zeitabhängen I und D Regler funktionieren
 void TimerInterruptFunktion() {
+  
+  // Blinke die LED an Pin 13
   digitalWrite(13,!LEDState);
   LEDState = !LEDState;
-  digitalWrite(5,LOW);
-  delay(5);
-  Istwert = map(analogRead(0),400,1000,100,450);
+
+  // Temperaturmessung am Thermoelement in der Lötspitze
+  digitalWrite(5,LOW);  // deaktiviere die Heizung, damit die Leitungen des Thermoelements weniger Störungen haben, wenn gemessen wird
+  delay(5); // Warte 5 Millisekunden, damit sich die Leitungskapazität abbauen kann
+  // Verscheibe die Werte im TemperaturBuffer um eine Stelle nach vorne. Also Stelle 10 bekommt den inhalt von Stelle 9 usw
+  for (int i = Mittelwert - 1; i >= 1;i--){ 
+    TemperaturBuffer[i] = TemperaturBuffer[i - 1];
+  }
+
+  // Lies den aktuellen Temperaturwert ein, und rechne den gemessenen Wert in den kalibrierten Messbereich um
   TemperaturBuffer[0] = map(analogRead(0),400,1000,100,400);
-  Temperaturmittelwert = 0;
+
+  // Rechne den Mittelwert aus den Messwerten im TemperaturBuffer aus
+  Temperaturmittelwert = 0;  
   for (int i = 0; i < Mittelwert;i++){
     Temperaturmittelwert += TemperaturBuffer[i];
-    //Serial.print(TemperaturBuffer[i]); Serial.print(" ");
   }
   aktuelleTemperatur = Temperaturmittelwert / Mittelwert;
 
+  // Berechne den PID-Regler neu, mit dem neuen Temperatur-Ist wert und dem unter umständen geänderten Sollwert
   myPID.Compute();
-
-  if (analogRead(0) < 1000){
-    analogWrite(5,Output);
-  }else{
-    digitalWrite(5,LOW);
-  }
   
-  //
-
+  // Steuere die Leistungselektronik an
+  if (analogRead(0) < 1000){  // Wenn eine Lötspitze eingebaut ist (Sonst wird Pin A0 auf HIGH gezogen)
+    analogWrite(5,Output);  // Steuere die Leistungselektronik mit dem vom PID-Regler ausgegebenen Wert an
+  }else{  // Wenn keine Lötspitze eingebaut ist
+    digitalWrite(5,LOW);  // Schalte die Leistungselektronik aus
+  }  
 }
 
 
@@ -119,15 +129,7 @@ void setup() {
 }
 
 
-void loop() {
-  // Schreibe den Aktuell gemessenen Wert des Thermoelements auf die Serielle Schnittstelle
-  //Serial.println(analogRead(0));
-  for (int i = Mittelwert - 1; i >= 1;i--){
-    TemperaturBuffer[i] = TemperaturBuffer[i - 1];
-  }
-  
-  Serial.print(aktuelleTemperatur); Serial.print("  ");
-
+void loop() {  
   // Verarbeite die Encoderposition 
   int32_t Encoderposition = int(myEnc.read()/2); // liest den aktuellen Encoderwert ein
   Sollwert = constrain(Encoderposition,100,400);  // setze die Solltemperatur auf die Encoderposition, begrenze den Wert
@@ -140,31 +142,25 @@ void loop() {
     oldPosition = Sollwert; // aktualisiere den zwischenspeicher
   }
 
+
+  // Steuere die Siebensegmentanzeige an
   if (millis() - lastEncoderChange < 1000){ // Wenn der Encoderwert innerhalb der letzen Sekunde verändert wurde
-    //SiebSegAnzeige.sendFixedVal(325 * 10,0,0); // schreibe den aktuell eingestellten Sollwert auf die Siebensegment-Anzeige
-    String TextToShow  = String(Sollwert) + "C";
-    TextToShow.toCharArray(DisplayBuffer,5);
-    SiebSegAnzeige.sendString(DisplayBuffer);
+    String TextToShow  = String(Sollwert) + "C";  // Setze einen String aus der gesetzen Temperatur und C zusammen
+    TextToShow.toCharArray(DisplayBuffer,4);  // Wandle diesen String in ein char Array um
+    SiebSegAnzeige.sendString(DisplayBuffer); // schreibe dieses char Array auf die Siebensegment anzeige
   }else{
-    //String TextToShow  = String(aktuelleTemperatur) + "C";
-    //TextToShow.toCharArray(DisplayBuffer,5);
-    //SiebSegAnzeige.sendString(DisplayBuffer);
-    if (millis() - lastTimeSiebSegChange > 100){
+    if (millis() - lastTimeSiebSegChange > 100){   // Wenn die Temperaturanzeige zuletzt vor mehr als 100ms aktualisiert wurde
       lastTimeSiebSegChange = millis();
-      if (aktuelleTemperatur > 400){
-        SiebSegAnzeige.sendString(" -- ");
-      }else{
-        SiebSegAnzeige.sendFixedVal(int(aktuelleTemperatur * 10),1,0);
+      if (aktuelleTemperatur > 400){  // und die Lötspitzentemperatur höher als 400grad ist 
+        SiebSegAnzeige.sendString(" -- ");  // Zeige an, das keine Lötspitze eingebaut ist
+      }else{  // Sonst  
+        SiebSegAnzeige.sendFixedVal(int(aktuelleTemperatur * 10),1,0);  // Zeige die aktuelle Temperatur mit einer Nachkommastelle an
       }
     }
-    //SiebSegAnzeige.sendString("----");
   }
 
-   
-
-  Serial.print(Output); Serial.print("  ");
+  // Zeige den PID-Output auf der Bargraph-Anzeige an
   int Graph = int(map(Output,0,255,0,20));
-  Serial.println(Graph);
   BarGraphAnzeige.writeBarGraph(Graph);
 }
 
